@@ -1,0 +1,12 @@
+{
+    "name": "glitchbl/mjml-twig-parser",
+    "description": "Parse mjml with twig to HTML",
+    "require": {
+        "twig/twig": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Glitchbl\\MjmlTwig\\": "src/"
+        }
+    }
+}
