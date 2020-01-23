@@ -1,12 +1,12 @@
 <?php
 
-namespace Glitchbl\MjmlTwig;
+namespace Glitchbl;
 
 use Twig\Loader\ArrayLoader;
 use Twig\Environment;
 use Exception;
 
-class Parser
+class MjmlTwig
 {
     /**
      * @var string
@@ -17,7 +17,7 @@ class Parser
      * @param string $mjml
      * @return void
      */
-    private function __construct(string $mjml)
+    public function __construct(string $mjml)
     {
         $this->mjml = $mjml;
     }
@@ -28,17 +28,38 @@ class Parser
      */
     static function createFromUrl(string $url): self
     {
-        $mjml = Utils::curlGetContents($url);
-        return self::createFromString($mjml);
+        $mjml = self::curlGetContents($url);
+        return new self($mjml);
     }
 
     /**
-     * @param string $mjml
-     * @return self
+     * @param string $url
+     * @return string
      */
-    static function createFromString(string $mjml): self
+    static protected function curlGetContents(string $url): string
     {
-        return new static($mjml);
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
+        $content = curl_exec($curl);
+        curl_close($curl);
+        return $content;
+    }
+
+    /**
+     * @throws Exception
+     * @return string
+     */
+    protected function createTemporaryFile(): string
+    {
+        $file = tempnam(sys_get_temp_dir(), 'mjmltwig_');
+
+        if (!$file)
+            throw new Exception("Unable to create temporary file '{$file}'");
+
+        return $file;
     }
 
     /**
@@ -51,7 +72,7 @@ class Parser
         $twig = new Environment(new ArrayLoader(['mjml' => $this->mjml]));
         $mjml = $twig->render('mjml', $variables);
 
-        $tmp_file = Utils::createTemporaryFile();
+        $tmp_file = $this->createTemporaryFile();
         file_put_contents($tmp_file, $mjml);
 
         $command = 'mjml '.escapeshellarg($tmp_file).' -s';
@@ -68,9 +89,13 @@ class Parser
         $error = stream_get_contents($pipes[2]);
         fclose($pipes[2]);
 
-        if (proc_close($process) !== 0 && $error)
+        $status = proc_close($process);
+        unlink($tmp_file);
+
+        if ($status !== 0 && $error)
             throw new Exception($error);
 
+        $output = trim(preg_replace('#<!--\s+[^>]+-->#i', '', $output));
         return $output;
     }
 }
