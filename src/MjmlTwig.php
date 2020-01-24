@@ -11,41 +11,21 @@ class MjmlTwig
     /**
      * @var string
      */
-    protected string $mjml;
+    protected string $mjml_twig;
 
     /**
-     * @param string $mjml
+     * @var Environment
+     */
+    protected Environment $twig;
+
+    /**
+     * @param string $mjml_twig
      * @return void
      */
-    public function __construct(string $mjml)
+    public function __construct(string $mjml_twig)
     {
-        $this->mjml = $mjml;
-    }
-
-    /**
-     * @param string $url
-     * @return self
-     */
-    static function createFromUrl(string $url): self
-    {
-        $mjml = self::curlGetContents($url);
-        return new self($mjml);
-    }
-
-    /**
-     * @param string $url
-     * @return string
-     */
-    static protected function curlGetContents(string $url): string
-    {
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
-        $content = curl_exec($curl);
-        curl_close($curl);
-        return $content;
+        $this->mjml_twig = $mjml_twig;
+        $this->twig = new Environment(new ArrayLoader(['mjml_twig' => $this->mjml_twig]));
     }
 
     /**
@@ -63,14 +43,21 @@ class MjmlTwig
     }
 
     /**
+     * @return Environment
+     */
+    public function getTwig()
+    {
+        return $this->twig;
+    }
+
+    /**
      * @param array $variables
      * @throws Exception
      * @return string
      */
     public function parse(array $variables = []): string
     {
-        $twig = new Environment(new ArrayLoader(['mjml' => $this->mjml]));
-        $mjml = $twig->render('mjml', $variables);
+        $mjml = $this->twig->render('mjml_twig', $variables);
 
         $tmp_file = $this->createTemporaryFile();
         file_put_contents($tmp_file, $mjml);
