@@ -5,6 +5,8 @@ namespace Glitchbl;
 use Twig\Loader\ArrayLoader;
 use Twig\Environment;
 use Exception;
+use Twig\Loader\ChainLoader;
+use Twig\Loader\FilesystemLoader;
 
 class MjmlTwig
 {
@@ -19,13 +21,19 @@ class MjmlTwig
     protected Environment $twig;
 
     /**
+     * @var FilesystemLoader
+     */
+    protected FilesystemLoader $loader;
+
+    /**
      * @param string $mjml_twig
      * @return void
      */
     public function __construct(string $mjml_twig)
     {
         $this->mjml_twig = $mjml_twig;
-        $this->twig = new Environment(new ArrayLoader(['mjml_twig' => $this->mjml_twig]));
+        $this->loader = new FilesystemLoader;
+        $this->twig = new Environment(new ChainLoader([new ArrayLoader(['mjml_twig' => $this->mjml_twig]), $this->loader]));
     }
 
     /**
@@ -48,6 +56,14 @@ class MjmlTwig
     public function getTwig()
     {
         return $this->twig;
+    }
+
+    /**
+     * @return FilesystemLoader
+     */
+    public function getLoader()
+    {
+        return $this->loader;
     }
 
     /**
